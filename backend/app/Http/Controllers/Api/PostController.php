@@ -10,10 +10,40 @@ use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with('user')->paginate(10);
-        return response()->json($posts);
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $query = Post::with('user')->orderBy('created_at', 'desc');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
+
+        $posts = $query->paginate($perPage);
+
+        return response()->json([
+            'posts' => $posts->items(),
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'hasMore' => $posts->hasMorePages(),
+            'total' => $posts->total(),
+        ]);
+    }
+
+    public function getBySlug($slug)
+    {
+        $post = Post::where('slug', $slug)->with('user')->first();
+
+        if (!$post) {
+            return response()->json(['message' => 'Post not found'], 404);
+        }
+
+        return response()->json($post);
     }
 
     public function store(Request $request)
@@ -72,10 +102,28 @@ class PostController extends Controller
         return response()->json(['message' => 'Пост удален успешно']);
     }
 
-    // Получение постов текущего пользователя
-    public function myPosts()
+    public function myPosts(Request $request)
     {
-        $posts = Post::where('user_id', Auth::id())->paginate(10);
-        return response()->json($posts);
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $query = Post::where('user_id', Auth::id())->with('user');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
+
+        $posts = $query->paginate($perPage);
+
+        return response()->json([
+            'posts' => $posts->items(),
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'hasMore' => $posts->hasMorePages(),
+            'total' => $posts->total(),
+        ]);
     }
 }
