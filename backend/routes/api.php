@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     
+    Route::apiResource('posts', PostController::class)->except(['index', 'show']);
     Route::patch('/posts', [PostController::class, 'update']);
     Route::delete('/posts', [PostController::class, 'destroy']);
     
